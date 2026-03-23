@@ -18,6 +18,9 @@ const CONFIG = {
   },
 };
 
+const MIN_DELAY_HOURS = 48;
+const BATCH_SIZE = 5; // monte à 20, 50 puis 100 plus tard
+
 function getGoogleAuth() {
   return new google.auth.JWT(
     process.env.GOOGLE_CLIENT_EMAIL,
@@ -25,6 +28,14 @@ function getGoogleAuth() {
     process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
     ["https://www.googleapis.com/auth/spreadsheets"]
   );
+}
+
+function hoursSince(dateString) {
+  if (!dateString) return Infinity;
+  const sentAt = new Date(dateString).getTime();
+  if (Number.isNaN(sentAt)) return Infinity;
+  const now = Date.now();
+  return (now - sentAt) / (1000 * 60 * 60);
 }
 
 function getTemplate(language, type, step) {
@@ -39,6 +50,14 @@ function getTemplate(language, type, step) {
           subject: "SUPA test automation - step 2",
           html: `<p>This is a test email for SUPA test audience - step 2.</p>`,
         },
+        {
+          subject: "SUPA test automation - step 3",
+          html: `<p>This is a test email for SUPA test audience - step 3.</p>`,
+        },
+        {
+          subject: "SUPA test automation - step 4",
+          html: `<p>This is a test email for SUPA test audience - step 4.</p>`,
+        },
       ],
     },
     fr: {
@@ -50,6 +69,14 @@ function getTemplate(language, type, step) {
         {
           subject: "SUPA renewal automation - étape 2",
           html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 2.</p>`,
+        },
+        {
+          subject: "SUPA renewal automation - étape 3",
+          html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 3.</p>`,
+        },
+        {
+          subject: "SUPA renewal automation - étape 4",
+          html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 4.</p>`,
         },
       ],
     },
@@ -89,7 +116,11 @@ export default async function handler(req, res) {
 
     const rows = response.data.values || [];
     if (rows.length < 2) {
-      return res.status(200).json({ success: true, sent: 0, message: "No data rows found" });
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        message: "No data rows found",
+      });
     }
 
     const headers = rows[0];
@@ -105,19 +136,21 @@ export default async function handler(req, res) {
     });
 
     const eligible = records.filter((r) => {
-      return (
-        r.email &&
-        r.status === "active" &&
-        r.purchased !== "done" &&
-        r.purchased !== "bought"
-      );
+      const isActive = r.status === "active";
+      const notPurchased = r.purchased !== "done" && r.purchased !== "bought";
+      const enoughDelay = hoursSince(r.last_sent_at) >= MIN_DELAY_HOURS;
+
+      return r.email && isActive && notPurchased && enoughDelay;
     });
 
-    const batchSize = 5;
-    const toSend = eligible.slice(0, batchSize);
+    const toSend = eligible.slice(0, BATCH_SIZE);
 
     if (toSend.length === 0) {
-      return res.status(200).json({ success: true, sent: 0, message: "No eligible contacts" });
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        message: "No eligible contacts",
+      });
     }
 
     const emails = toSend.map((contact) => {
@@ -133,7 +166,6 @@ export default async function handler(req, res) {
     });
 
     const result = await resend.batch.send(emails);
-
     const now = new Date().toISOString();
 
     for (const contact of toSend) {
@@ -154,6 +186,7 @@ export default async function handler(req, res) {
       success: true,
       audience,
       sent: toSend.length,
+      skipped: records.length - toSend.length,
       result,
     });
   } catch (error) {
