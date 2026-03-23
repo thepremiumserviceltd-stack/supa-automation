@@ -4,6 +4,18 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const CONFIG = {
+  test_fr: {
+    sheetId: process.env.SHEET_TEST_FR_ID,
+    tabName: process.env.SHEET_TEST_FR_TAB,
+    language: "fr",
+    type: "test",
+  },
+  test_de: {
+    sheetId: process.env.SHEET_TEST_DE_ID,
+    tabName: process.env.SHEET_TEST_DE_TAB,
+    language: "de",
+    type: "test",
+  },
   test_en: {
     sheetId: process.env.SHEET_TEST_EN_ID,
     tabName: process.env.SHEET_TEST_EN_TAB,
@@ -19,7 +31,7 @@ const CONFIG = {
 };
 
 const MIN_DELAY_HOURS = 48;
-const BATCH_SIZE = 5; // monte à 20, 50 puis 100 plus tard
+const BATCH_SIZE = 5;
 
 function getGoogleAuth() {
   return new google.auth.JWT(
@@ -34,49 +46,86 @@ function hoursSince(dateString) {
   if (!dateString) return Infinity;
   const sentAt = new Date(dateString).getTime();
   if (Number.isNaN(sentAt)) return Infinity;
-  const now = Date.now();
-  return (now - sentAt) / (1000 * 60 * 60);
+  return (Date.now() - sentAt) / (1000 * 60 * 60);
 }
 
 function getTemplate(language, type, step) {
   const templates = {
-    en: {
+    fr: {
       test: [
         {
-          subject: "SUPA test automation - step 1",
-          html: `<p>This is a test email for SUPA test audience - step 1.</p>`,
+          subject: "SUPA FR test - étape 1",
+          html: `<p>Email de test FR - étape 1.</p>`,
         },
         {
-          subject: "SUPA test automation - step 2",
-          html: `<p>This is a test email for SUPA test audience - step 2.</p>`,
+          subject: "SUPA FR test - étape 2",
+          html: `<p>Email de test FR - étape 2.</p>`,
         },
         {
-          subject: "SUPA test automation - step 3",
-          html: `<p>This is a test email for SUPA test audience - step 3.</p>`,
+          subject: "SUPA FR test - étape 3",
+          html: `<p>Email de test FR - étape 3.</p>`,
         },
         {
-          subject: "SUPA test automation - step 4",
-          html: `<p>This is a test email for SUPA test audience - step 4.</p>`,
+          subject: "SUPA FR test - étape 4",
+          html: `<p>Email de test FR - étape 4.</p>`,
+        },
+      ],
+      renewal: [
+        {
+          subject: "SUPA renewal FR - étape 1",
+          html: `<p>Email de test renewal FR - étape 1.</p>`,
+        },
+        {
+          subject: "SUPA renewal FR - étape 2",
+          html: `<p>Email de test renewal FR - étape 2.</p>`,
+        },
+        {
+          subject: "SUPA renewal FR - étape 3",
+          html: `<p>Email de test renewal FR - étape 3.</p>`,
+        },
+        {
+          subject: "SUPA renewal FR - étape 4",
+          html: `<p>Email de test renewal FR - étape 4.</p>`,
         },
       ],
     },
-    fr: {
-      renewal: [
+    de: {
+      test: [
         {
-          subject: "SUPA renewal automation - étape 1",
-          html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 1.</p>`,
+          subject: "SUPA DE Test - Schritt 1",
+          html: `<p>DE Test-E-Mail - Schritt 1.</p>`,
         },
         {
-          subject: "SUPA renewal automation - étape 2",
-          html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 2.</p>`,
+          subject: "SUPA DE Test - Schritt 2",
+          html: `<p>DE Test-E-Mail - Schritt 2.</p>`,
         },
         {
-          subject: "SUPA renewal automation - étape 3",
-          html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 3.</p>`,
+          subject: "SUPA DE Test - Schritt 3",
+          html: `<p>DE Test-E-Mail - Schritt 3.</p>`,
         },
         {
-          subject: "SUPA renewal automation - étape 4",
-          html: `<p>Ceci est un email de test pour l’audience renouvellement - étape 4.</p>`,
+          subject: "SUPA DE Test - Schritt 4",
+          html: `<p>DE Test-E-Mail - Schritt 4.</p>`,
+        },
+      ],
+    },
+    en: {
+      test: [
+        {
+          subject: "SUPA EN test - step 1",
+          html: `<p>EN test email - step 1.</p>`,
+        },
+        {
+          subject: "SUPA EN test - step 2",
+          html: `<p>EN test email - step 2.</p>`,
+        },
+        {
+          subject: "SUPA EN test - step 3",
+          html: `<p>EN test email - step 3.</p>`,
+        },
+        {
+          subject: "SUPA EN test - step 4",
+          html: `<p>EN test email - step 4.</p>`,
         },
       ],
     },
@@ -99,7 +148,7 @@ export default async function handler(req, res) {
 
     if (!audience || !CONFIG[audience]) {
       return res.status(400).json({
-        error: "Use ?audience=test_en or ?audience=renewal",
+        error: "Use ?audience=test_fr, test_de, test_en or renewal",
       });
     }
 
@@ -139,7 +188,6 @@ export default async function handler(req, res) {
       const isActive = r.status === "active";
       const notPurchased = r.purchased !== "done" && r.purchased !== "bought";
       const enoughDelay = hoursSince(r.last_sent_at) >= MIN_DELAY_HOURS;
-
       return r.email && isActive && notPurchased && enoughDelay;
     });
 
