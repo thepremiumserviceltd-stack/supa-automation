@@ -48,7 +48,42 @@ function hoursSince(dateString) {
   if (Number.isNaN(sentAt)) return Infinity;
   return (Date.now() - sentAt) / (1000 * 60 * 60);
 }
+function buildEmail(title, content, buttonText = "Activer mon accès") {
+  return `
+    <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
+      <div style="max-width:600px; margin:auto; background:white; padding:25px; border-radius:8px;">
+        
+        <h2 style="color:#111; margin-top:0;">${title}</h2>
 
+        <div style="color:#333; line-height:1.7; font-size:15px;">
+          ${content}
+        </div>
+
+        <div style="text-align:center; margin:30px 0;">
+          <a href="https://supa-services.com/pricing" 
+             style="background:#111; color:white; padding:14px 24px; text-decoration:none; border-radius:5px; display:inline-block;">
+             ${buttonText}
+          </a>
+        </div>
+
+        <div style="text-align:center; margin-bottom:20px;">
+          <a href="https://wa.me/447577327132" 
+             style="color:#25D366; font-weight:bold; text-decoration:none;">
+             Assistance WhatsApp
+          </a>
+        </div>
+
+        <hr style="margin:30px 0; border:none; border-top:1px solid #ddd;">
+
+        <p style="font-size:12px; color:#777; margin:0;">
+          SupaService<br>
+          <a href="https://supa-services.com" style="color:#777;">https://supa-services.com</a><br>
+          WhatsApp assistance: <a href="https://wa.me/447577327132" style="color:#777;">+44 7577 327132</a>
+        </p>
+      </div>
+    </div>
+  `;
+}
 function getTemplate(language, type, step) {
   const templates = {
     fr: {
