@@ -1,0 +1,63 @@
+import { google } from "googleapis";
+
+function getGoogleAuth() {
+  return new google.auth.JWT(
+    process.env.GOOGLE_CLIENT_EMAIL,
+    null,
+    process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    ["https://www.googleapis.com/auth/spreadsheets"]
+  );
+}
+
+export default async function handler(req, res) {
+  try {
+    const email = req.query.email;
+
+    if (!email) {
+      return res.status(400).send("Email manquant");
+    }
+
+    const auth = getGoogleAuth();
+    const sheets = google.sheets({ version: "v4", auth });
+
+    const SHEETS = [
+      { id: process.env.SHEET_TEST_FR_ID, tab: process.env.SHEET_TEST_FR_TAB },
+      { id: process.env.SHEET_TEST_DE_ID, tab: process.env.SHEET_TEST_DE_TAB },
+      { id: process.env.SHEET_TEST_EN_ID, tab: process.env.SHEET_TEST_EN_TAB },
+      { id: process.env.SHEET_RENEWAL_ID, tab: process.env.SHEET_RENEWAL_TAB },
+    ];
+
+    for (const sheet of SHEETS) {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheet.id,
+        range: `${sheet.tab}!A:G`,
+      });
+
+      const rows = response.data.values || [];
+      if (rows.length < 2) continue;
+
+      const headers = rows[0];
+      const emailIndex = headers.indexOf("email");
+      const statusIndex = headers.indexOf("status");
+
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][emailIndex] === email) {
+          const rowNumber = i + 1;
+
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: sheet.id,
+            range: `${sheet.tab}!${String.fromCharCode(65 + statusIndex)}${rowNumber}`,
+            valueInputOption: "RAW",
+            requestBody: {
+              values: [["unsubscribed"]],
+            },
+          });
+        }
+      }
+    }
+
+    return res.status(200).send("Vous êtes désinscrit avec succès.");
+  } catch (error) {
+    return res.status(500).send("Erreur");
+  }
+}
