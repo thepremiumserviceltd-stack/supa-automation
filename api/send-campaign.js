@@ -85,6 +85,12 @@ function buildEmail(title, preview, content, buttonText = "Activer mon accès") 
           <a href="https://supa-services.com" style="color:#777;">https://supa-services.com</a><br>
           WhatsApp assistance: <a href="https://wa.me/447577327132" style="color:#777;">+44 7577 327132</a>
         </p>
+        <p style="font-size:12px; color:#777;">
+          Vous recevez cet email suite à votre utilisation de SUPA.<br>
+          <a href="https://TON-URL-VERCEL/api/unsubscribe?email={{email}}" style="color:#777;">
+            Se désinscrire
+          </a>
+        </p>
       </div>
     </div>
   `;
