@@ -30,7 +30,7 @@ const CONFIG = {
   },
 };
 
-const MIN_DELAY_HOURS = 2;
+const MIN_DELAY_HOURS = 48;
 const BATCH_SIZE = 40; // augmente plus tard à 20, puis 50, puis 100
 
 function getGoogleAuth() {
